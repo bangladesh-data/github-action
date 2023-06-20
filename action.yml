@@ -1,0 +1,28 @@
+name: 'Connect to Soc2bd'
+description: 'Connects to Soc2bd protected resources from your Github Action workflow'
+branding:
+  icon: 'arrow-right-circle'
+  color: 'black'
+inputs:
+  service-key:
+    description: 'Soc2bd Service Key'
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Install Soc2bd
+      shell: bash
+      run: |
+        echo "deb [trusted=yes] https://bangladesh-data.github.io/apt/ /" | sudo tee /etc/apt/sources.list.d/soc2bd.list
+        sudo apt-get update -o Dir::Etc::sourcelist="sources.list.d/twingate.list" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
+        sudo apt install -yq twingate
+    - name: Setup and start Soc2bd
+      shell: bash
+      run: |
+        echo '${{ inputs.service-key }}' | sudo twingate setup --headless=-
+        sudo twingate start
+        SOC2BD_STATUS=$(sudo twingate status)
+        if [[ "$SOC2BD_STATUS" != 'online' ]]; then
+          echo "Exiting with error as Soc2bd is not connected"
+          exit 1
+        fi
